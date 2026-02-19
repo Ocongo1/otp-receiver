@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <title>AI OTP Receiver</title>
     <meta charset="utf-8">
@@ -16,7 +15,7 @@
         .messages{max-height:600px;overflow-y:auto}
         .message{background:#1a1a1a;margin:15px 0;padding:20px;border-radius:12px;border-left:4px solid #00d4aa}
         .message.pending{border-left-color:#666}
-        .header{display:flex;justify-content:space-between;font-size:14px;color:#888;margin-bottom:30px}
+        .header{display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:10px}
         .otp-found{background:rgba(0,212,170,0.2);padding:12px;border-radius:8px;margin-top:10px;font-size:18px}
         .confidence{display:inline-block;background:#00d4aa;padding:4px 8px;border-radius:4px;font-size:12px;margin-left:10px}
         .stats{display:flex;justify-content:center;gap:40px;margin:40px 0}
@@ -30,18 +29,27 @@
     <div class="container">
         <h1>🛡️ AI OTP Receiver</h1>
         <p class="subtitle">Pentesting Demo | Educational Use Only</p>
-        
-        <form id="test-form">
-            <label for="sms-input" style="font-weight: bold;">Enter SMS:</label>
-            <input type="text" id="sms-input" placeholder="Your code is XXXXXXXX">
-        </form>
-        <button id="submit-btn">Submit</button>
-        
-        <div class="stats">
-            <span id="message-count">{{ messages|length }}</span>
-            <span>SMS Captured</span>
+
+        <div class="test-box">
+            <form>
+                <label for="phoneNumber">Phone Number:</label>
+                <input type="tel" id="phoneNumber" name="phoneNumber">
+                <br><br>
+
+                <label for="smsText">SMS Text:</label>
+                <textarea id="smsText" name="smsText"></textarea>
+            </form>
+
+            <button onclick="testOtp()">Test AI</button>
         </div>
-        
+
+        <div class="stats">
+            <div class="stat">
+                <span class="number">{{ messages|length }}</span>
+                <span>SMS Captured</span>
+            </div>
+        </div>
+
         <div class="messages">
             {% for msg in messages %}
             <div class="message {% if msg.ai_extracted.otp != None %}success{% else %}pending{% endif %}">
@@ -49,7 +57,9 @@
                     <span>{{ msg.from_number }}</span>
                     <span>{{ msg.timestamp }}</span>
                 </div>
+
                 <div class="body">{{ msg.body }}</div>
+
                 {% if msg.ai_extracted.otp %}
                 <div class="otp-found">
                     ✅ OTP: <strong>{{ msg.ai_extracted.otp }}</strong>
@@ -59,30 +69,90 @@
             </div>
             {% endfor %}
         </div>
-        
+
         <div class="footer">
             <p><strong>Twilio Webhook:</strong> POST /webhook<br>
             <strong>API:</strong> GET /api/messages</p>
         </div>
+    </div>
 
-        <script>
-            const form = document.getElementById('test-form');
-            const submitBtn = document.getElementById('submit-btn');
-            
-            function testOtp(){
-                const smsInputValue = document.getElementById('sms-input').value;
-                fetch('/test', {
-                    method: 'POST',
-                    headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({sms:smsInputValue})
-                })
-                .then(res => res.json())
-                .then(result => alert(`AI Result: ${result.otp || 'None'} (${result.confidence*100}%)`));
-            }
-            
-            submitBtn.addEventListener('click', testOtp);
-        </script>
+    <script>
+        async function testOtp(){
+            const sms = document.getElementById('testSms').value;
+            const res = await fetch('/test', {
+                method: 'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({sms})
+            });
+            const result = await res.json();
+            alert(`AI Result: ${result.otp || 'None'} (${result.confidence*100}%)`);
+        }
+
+        setInterval(async()=>{
+            const res = await fetch('/api/messages');
+            const data = await res.json();
+            console.log('New messages:', data.messages.length);
+        }, 5000);
+    </script>
 </body>
 </html>
 
-This code is designed for educational purposes only and does not capture any real OTP codes from SMS messages in a live scenario.
+import re
+from typing import Dict, Optional
+
+class AIOTPBot:
+    def __init__(self):
+        self.patterns = [
+            r'\b\d{4,8}\b',
+            r'(?:code|otp|pin|verify)[:\s-]*(\d{4,8})',
+            r'(\d{4,8})[\s-]*(?:is|your|code|otp|pin)',
+            r'your[\s-]*(?:code|otp|pin)[\s-]*(\d{4,8})',
+            r'(\d{6})\s*(?:valid|expires)',
+            r'confirmation[:\s]*(\d{4,8})',
+            r'(\d{4})\s*(?:digits?|code)'
+        ]
+        self.compiled = [re.compile(p, re.IGNORECASE | re.DOTALL) for p in self.patterns]
+
+    def confidence_score(self, text: str, otp: str) -> float:
+        score = 0.0
+        text_lower = text.lower()
+        
+        keywords = ['code', 'otp', 'pin', 'verify', 'confirm', 'sent', 'message']
+        score += min(sum(1 for k in keywords if k in text_lower) * 0.15, 0.4)
+        
+        pos = text_lower.find(otp.lower())
+        if 5 < pos < len(text_lower) - 10:
+            score += 0.25
+        
+        if len(otp) in [4, 6]:
+            score += 0.2
+        
+        if re.search(r'\d{3,}valid|\d{3,}expires', text_lower):
+            score += 0.15
+        
+        return min(score, 1.0)
+
+    def extract_otp(self, text: str) -> Dict[str, any]:
+        candidates = []
+        text_lower = text.lower()
+        
+        for pattern in self.compiled:
+            matches = pattern.findall(text)
+            for match in matches:
+                if isinstance(match, str) and match.isdigit() and 4 <= len(match) <= 8:
+                    conf = self.confidence_score(text, match)
+                    candidates.append({'otp': match, 'confidence': conf})
+        
+        if not candidates:
+            return {'otp': None, 'confidence': 0.0, 'method': 'none'}
+        
+        best = max(candidates, key=lambda x: x['confidence']
+        return {
+            'otp': best['otp'],
+            'confidence': round(best['confidence'], 2),
+            'method': 'ai-regex'
+        }
+
+app.py and ai_otp_bot.py can be used with the Flask app running on a server that listens for incoming requests.
+
+The ‘index.html’ file is an HTML template for rendering OTP receiver dashboard where users can test their OTP extraction using a text input box and can also view captured SMS messages.
