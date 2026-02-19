@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI OTP Receiver - Pentest Demo</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ AI-Powered OTP Receiver</h1>
+        <p class="subtitle">Pentesting Demo - Educational Use Only</p>
+        
+        <div class="stats">
+            <div class="stat">
+                <span class="number">{{ messages|length }}</span>
+                <span>Messages Received</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <input type="text" id="testSms" placeholder="Test SMS: Your OTP is 123456">
+            <button onclick="testOtp()">Test AI Extraction</button>
+        </div>
+        
+        <div class="messages">
+            {% for msg in messages[-10:] %}
+            <div class="message {% if msg.ai_extracted.otp %}success{% else %}pending{% endif %}">
+                <div class="header">
+                    <span class="from">{{ msg.from_number }}</span>
+                    <span class="time">{{ msg.timestamp }}</span>
+                </div>
+                <div class="body">{{ msg.body }}</div>
+                {% if msg.ai_extracted.otp %}
+                <div class="otp-found">
+                    ✅ AI OTP: <strong>{{ msg.ai_extracted.otp }}</strong> 
+                    ({{ msg.ai_extracted.confidence * 100 }}% confidence)
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="footer">
+            <p><strong>⚠️ Authorized Pentesting Only</strong> | USA Numbers | Educational Demo</p>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh messages
+        setInterval(() => {
+            fetch('/api/messages')
+                .then(r => r.json())
+                .then(messages => {
+                    // Update UI with new messages
+                    console.log('New messages:', messages);
+                });
+        }, 3000);
+
+        function testOtp() {
+            const sms = document.getElementById('testSms').value;
+            fetch('/test', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({sms: sms})
+            })
+            .then(r => r.json())
+            .then(result => {
+                alert(`AI Extracted: ${result.otp || 'None'} (${result.confidence * 100}%)`);
+            });
+        }
+    </script>
+</body>
+</html>
