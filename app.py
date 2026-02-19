@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, jsonify
 from ai_otp_bot import AIOTPBot
-from datetime import datetime
 import os
 import re
 
