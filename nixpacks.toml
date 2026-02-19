@@ -1,0 +1,5 @@
+[phases.build]
+nixPkgs = ["python311", "nodejs"]
+
+[staticAssets]
+skipBuild = true
