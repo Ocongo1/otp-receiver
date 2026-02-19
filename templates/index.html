@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>AI OTP Receiver</title>
     <meta charset="utf-8">
@@ -15,7 +16,7 @@
         .messages{max-height:600px;overflow-y:auto}
         .message{background:#1a1a1a;margin:15px 0;padding:20px;border-radius:12px;border-left:4px solid #00d4aa}
         .message.pending{border-left-color:#666}
-        .header{display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:10px}
+        .header{display:flex;justify-content:space-between;font-size:14px;color:#888;margin-bottom:30px}
         .otp-found{background:rgba(0,212,170,0.2);padding:12px;border-radius:8px;margin-top:10px;font-size:18px}
         .confidence{display:inline-block;background:#00d4aa;padding:4px 8px;border-radius:4px;font-size:12px;margin-left:10px}
         .stats{display:flex;justify-content:center;gap:40px;margin:40px 0}
@@ -24,21 +25,21 @@
         .footer{text-align:center;margin-top:40px;color:#666;font-size:12px}
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>🛡️ AI OTP Receiver</h1>
         <p class="subtitle">Pentesting Demo | Educational Use Only</p>
         
-        <div class="stats">
-            <div class="stat">
-                <span class="number">{{ messages|length }}</span>
-                <span>SMS Captured</span>
-            </div>
-        </div>
+        <form id="test-form">
+            <label for="sms-input" style="font-weight: bold;">Enter SMS:</label>
+            <input type="text" id="sms-input" placeholder="Your code is XXXXXXXX">
+        </form>
+        <button id="submit-btn">Submit</button>
         
-        <div class="test-box">
-            <input id="testSms" placeholder="Test: Your code is 123456" value="Your verification code is 748291">
-            <button onclick="testOtp()">Test AI</button>
+        <div class="stats">
+            <span id="message-count">{{ messages|length }}</span>
+            <span>SMS Captured</span>
         </div>
         
         <div class="messages">
@@ -63,25 +64,25 @@
             <p><strong>Twilio Webhook:</strong> POST /webhook<br>
             <strong>API:</strong> GET /api/messages</p>
         </div>
-    </div>
 
-    <script>
-        async function testOtp(){
-            const sms = document.getElementById('testSms').value;
-            const res = await fetch('/test', {
-                method: 'POST',
-                headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({sms})
-            });
-            const result = await res.json();
-            alert(`AI Result: ${result.otp || 'None'} (${result.confidence*100}%)`);
-        }
-        
-        setInterval(async()=>{
-            const res = await fetch('/api/messages');
-            const data = await res.json();
-            console.log('New messages:', data.messages.length);
-        }, 5000);
-    </script>
+        <script>
+            const form = document.getElementById('test-form');
+            const submitBtn = document.getElementById('submit-btn');
+            
+            function testOtp(){
+                const smsInputValue = document.getElementById('sms-input').value;
+                fetch('/test', {
+                    method: 'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({sms:smsInputValue})
+                })
+                .then(res => res.json())
+                .then(result => alert(`AI Result: ${result.otp || 'None'} (${result.confidence*100}%)`));
+            }
+            
+            submitBtn.addEventListener('click', testOtp);
+        </script>
 </body>
 </html>
+
+This code is designed for educational purposes only and does not capture any real OTP codes from SMS messages in a live scenario.
