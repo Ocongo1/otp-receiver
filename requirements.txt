@@ -1,6 +1,4 @@
 Flask==2.3.3
-twilio==8.10.0
-spacy==3.7.2
-transformers==4.35.0
-torch==2.1.0
+gunicorn==21.2.0
 requests==2.31.0
+twilio==8.10.0
