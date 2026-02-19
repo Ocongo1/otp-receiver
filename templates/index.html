@@ -1,38 +1,58 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AI OTP Receiver - Pentest Demo</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>AI OTP Receiver</title>
+    <meta charset="utf-8">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#fff;padding:20px}
+        .container{max-width:900px;margin:0 auto}
+        h1{font-size:2.5em;color:#00d4aa;text-align:center;margin-bottom:10px}
+        .subtitle{color:#888;text-align:center;font-size:14px;margin-bottom:30px}
+        .test-box{display:flex;gap:10px;margin:30px 0;max-width:600px;margin-left:auto;margin-right:auto}
+        input{flex:1;padding:15px;border:1px solid #333;background:#1a1a1a;color:#fff;border-radius:8px;font-size:16px}
+        button{padding:15px 30px;background:#00d4aa;color:#000;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:16px}
+        .messages{max-height:600px;overflow-y:auto}
+        .message{background:#1a1a1a;margin:15px 0;padding:20px;border-radius:12px;border-left:4px solid #00d4aa}
+        .message.pending{border-left-color:#666}
+        .header{display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:10px}
+        .otp-found{background:rgba(0,212,170,0.2);padding:12px;border-radius:8px;margin-top:10px;font-size:18px}
+        .confidence{display:inline-block;background:#00d4aa;padding:4px 8px;border-radius:4px;font-size:12px;margin-left:10px}
+        .stats{display:flex;justify-content:center;gap:40px;margin:40px 0}
+        .stat{text-align:center}
+        .stat .number{font-size:3em;color:#00d4aa;display:block}
+        .footer{text-align:center;margin-top:40px;color:#666;font-size:12px}
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>🛡️ AI-Powered OTP Receiver</h1>
-        <p class="subtitle">Pentesting Demo - Educational Use Only</p>
+        <h1>🛡️ AI OTP Receiver</h1>
+        <p class="subtitle">Pentesting Demo | Educational Use Only</p>
         
         <div class="stats">
             <div class="stat">
                 <span class="number">{{ messages|length }}</span>
-                <span>Messages Received</span>
+                <span>SMS Captured</span>
             </div>
         </div>
         
-        <div class="controls">
-            <input type="text" id="testSms" placeholder="Test SMS: Your OTP is 123456">
-            <button onclick="testOtp()">Test AI Extraction</button>
+        <div class="test-box">
+            <input id="testSms" placeholder="Test: Your code is 123456" value="Your verification code is 748291">
+            <button onclick="testOtp()">Test AI</button>
         </div>
         
         <div class="messages">
-            {% for msg in messages[-10:] %}
-            <div class="message {% if msg.ai_extracted.otp %}success{% else %}pending{% endif %}">
+            {% for msg in messages %}
+            <div class="message {% if msg.ai_extracted.otp != None %}success{% else %}pending{% endif %}">
                 <div class="header">
-                    <span class="from">{{ msg.from_number }}</span>
-                    <span class="time">{{ msg.timestamp }}</span>
+                    <span>{{ msg.from_number }}</span>
+                    <span>{{ msg.timestamp }}</span>
                 </div>
                 <div class="body">{{ msg.body }}</div>
                 {% if msg.ai_extracted.otp %}
                 <div class="otp-found">
-                    ✅ AI OTP: <strong>{{ msg.ai_extracted.otp }}</strong> 
-                    ({{ msg.ai_extracted.confidence * 100 }}% confidence)
+                    ✅ OTP: <strong>{{ msg.ai_extracted.otp }}</strong>
+                    <span class="confidence">{{ (msg.ai_extracted.confidence * 100)|round(0) }}%</span>
                 </div>
                 {% endif %}
             </div>
@@ -40,33 +60,28 @@
         </div>
         
         <div class="footer">
-            <p><strong>⚠️ Authorized Pentesting Only</strong> | USA Numbers | Educational Demo</p>
+            <p><strong>Twilio Webhook:</strong> POST /webhook<br>
+            <strong>API:</strong> GET /api/messages</p>
         </div>
     </div>
 
     <script>
-        // Auto-refresh messages
-        setInterval(() => {
-            fetch('/api/messages')
-                .then(r => r.json())
-                .then(messages => {
-                    // Update UI with new messages
-                    console.log('New messages:', messages);
-                });
-        }, 3000);
-
-        function testOtp() {
+        async function testOtp(){
             const sms = document.getElementById('testSms').value;
-            fetch('/test', {
+            const res = await fetch('/test', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({sms: sms})
-            })
-            .then(r => r.json())
-            .then(result => {
-                alert(`AI Extracted: ${result.otp || 'None'} (${result.confidence * 100}%)`);
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({sms})
             });
+            const result = await res.json();
+            alert(`AI Result: ${result.otp || 'None'} (${result.confidence*100}%)`);
         }
+        
+        setInterval(async()=>{
+            const res = await fetch('/api/messages');
+            const data = await res.json();
+            console.log('New messages:', data.messages.length);
+        }, 5000);
     </script>
 </body>
 </html>
