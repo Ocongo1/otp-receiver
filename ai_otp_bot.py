@@ -1,6 +1,3 @@
-import re
-from typing import Dict, Optional
-
 class AIOTPBot:
     def __init__(self):
         self.patterns = [
@@ -13,7 +10,7 @@ class AIOTPBot:
             r'(\d{4})\s*(?:digits?|code)'
         ]
         self.compiled = [re.compile(p, re.IGNORECASE | re.DOTALL) for p in self.patterns]
-    
+
     def confidence_score(self, text: str, otp: str) -> float:
         score = 0.0
         text_lower = text.lower()
@@ -32,7 +29,7 @@ class AIOTPBot:
             score += 0.15
         
         return min(score, 1.0)
-    
+
     def extract_otp(self, text: str) -> Dict[str, any]:
         candidates = []
         text_lower = text.lower()
@@ -47,7 +44,7 @@ class AIOTPBot:
         if not candidates:
             return {'otp': None, 'confidence': 0.0, 'method': 'none'}
         
-        best = max(candidates, key=lambda x: x['confidence'])
+        best = max(candidates, key=lambda x: x['confidence']
         return {
             'otp': best['otp'],
             'confidence': round(best['confidence'], 2),
